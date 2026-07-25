@@ -85,8 +85,8 @@ fn main() -> Result<()> {
             Ok(())
         }
         Command::Tui => {
-            eprintln!("tui: not yet implemented");
-            std::process::exit(1);
+            glaunch::tui::run_tui()?;
+            Ok(())
         }
         Command::Info(args) => {
             let info = hardware::detect_hardware(args.refresh)?;
