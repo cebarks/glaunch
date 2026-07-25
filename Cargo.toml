@@ -1,0 +1,14 @@
+[package]
+name = "glaunch"
+version = "0.1.0"
+edition = "2024"
+description = "Steam game launch wrapper with gamescope, gamemode, HDR, V-Cache, and per-game profiles"
+
+[dependencies]
+anyhow = "1"
+clap = { version = "4", features = ["derive"] }
+crossterm = "0.28"
+dirs = "6"
+ratatui = "0.29"
+serde = { version = "1", features = ["derive"] }
+toml = "0.8"
