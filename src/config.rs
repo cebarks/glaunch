@@ -288,8 +288,11 @@ pub fn extract_steam_app_id(command: &[String]) -> Option<u64> {
                         if fname.starts_with("appmanifest_")
                             && fname.ends_with(".acf")
                             && let Ok(contents) = std::fs::read_to_string(entry.path())
-                            && (contents.contains(&format!("\"installdir\"\t\t\"{game_folder}\""))
-                                || contents.contains(&format!("\"installdir\"		\"{game_folder}\"")))
+                            && contents.lines().any(|line| {
+                                let trimmed = line.trim();
+                                trimmed.starts_with("\"installdir\"")
+                                    && trimmed.ends_with(&format!("\"{game_folder}\""))
+                            })
                         {
                             let id_str = fname
                                 .strip_prefix("appmanifest_")

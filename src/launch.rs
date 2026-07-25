@@ -55,7 +55,7 @@ pub fn build_launch_plan(
                 .join("MangoHud")
                 .join(format!("{config}.conf"));
             env_vars.push((
-                "MANGOHUD_CONFIG".into(),
+                "MANGOHUD_CONFIGFILE".into(),
                 config_path.to_string_lossy().to_string(),
             ));
         }

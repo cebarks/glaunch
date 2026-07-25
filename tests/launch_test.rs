@@ -132,7 +132,7 @@ fn test_mangohud_env_vars() {
     let mangohud_config = plan
         .env_vars
         .iter()
-        .find(|(k, _)| k == "MANGOHUD_CONFIG")
+        .find(|(k, _)| k == "MANGOHUD_CONFIGFILE")
         .map(|(_, v)| v.as_str());
     assert!(mangohud_config.is_some());
     assert!(mangohud_config.unwrap().contains("fps-only.conf"));

@@ -61,17 +61,10 @@ fn render_table(frame: &mut Frame, app: &App, area: Rect) {
         None => Span::styled("-", Style::default().fg(Color::DarkGray)),
     };
 
-    let rows: Vec<Row> = app
-        .profiles
+    let filtered = app.filtered_indices();
+    let rows: Vec<Row> = filtered
         .iter()
-        .filter(|(slug, profile)| {
-            if app.list_state.filter.is_empty() {
-                return true;
-            }
-            let filter = app.list_state.filter.to_lowercase();
-            let name = profile.name.as_deref().unwrap_or(slug).to_lowercase();
-            name.contains(&filter) || slug.to_lowercase().contains(&filter)
-        })
+        .map(|&i| &app.profiles[i])
         .map(|(slug, profile)| {
             let name = profile.name.as_deref().unwrap_or(slug);
             let app_id = profile
@@ -156,11 +149,14 @@ pub fn handle_input(app: &mut App, key: KeyEvent) {
         return;
     }
 
+    let filtered = app.filtered_indices();
+
     if app.list_state.confirm_delete {
         app.list_state.confirm_delete = false;
         if key.code == KeyCode::Char('y') {
-            if let Some(idx) = app.list_state.table_state.selected()
-                && let Some((slug, _)) = app.profiles.get(idx)
+            if let Some(visual_idx) = app.list_state.table_state.selected()
+                && let Some(&real_idx) = filtered.get(visual_idx)
+                && let Some((slug, _)) = app.profiles.get(real_idx)
             {
                 let slug = slug.clone();
                 match config::delete_profile(&slug) {
@@ -185,14 +181,14 @@ pub fn handle_input(app: &mut App, key: KeyEvent) {
     match key.code {
         KeyCode::Char('q') | KeyCode::Esc => app.should_quit = true,
         KeyCode::Char('j') | KeyCode::Down => {
-            let count = app.profiles.len();
+            let count = filtered.len();
             if count > 0 {
                 let i = app.list_state.table_state.selected().unwrap_or(0);
                 app.list_state.table_state.select(Some((i + 1) % count));
             }
         }
         KeyCode::Char('k') | KeyCode::Up => {
-            let count = app.profiles.len();
+            let count = filtered.len();
             if count > 0 {
                 let i = app.list_state.table_state.selected().unwrap_or(0);
                 app.list_state
@@ -201,16 +197,16 @@ pub fn handle_input(app: &mut App, key: KeyEvent) {
             }
         }
         KeyCode::Char('e') | KeyCode::Enter => {
-            if let Some(idx) = app.list_state.table_state.selected()
-                && idx < app.profiles.len()
+            if let Some(visual_idx) = app.list_state.table_state.selected()
+                && let Some(&real_idx) = filtered.get(visual_idx)
             {
-                let (slug, profile) = &app.profiles[idx];
+                let (slug, profile) = &app.profiles[real_idx];
                 app.edit_state = Some(profile_edit::EditState::from_profile(
                     slug.clone(),
                     profile.clone(),
                     false,
                 ));
-                app.view = View::Edit(idx);
+                app.view = View::Edit(real_idx);
             }
         }
         KeyCode::Char('n') => {

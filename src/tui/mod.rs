@@ -53,6 +53,22 @@ impl App {
         self.list_state = profile_list::ListState::new(self.profiles.len());
         Ok(())
     }
+
+    fn filtered_indices(&self) -> Vec<usize> {
+        if self.list_state.filter.is_empty() {
+            return (0..self.profiles.len()).collect();
+        }
+        let filter = self.list_state.filter.to_lowercase();
+        self.profiles
+            .iter()
+            .enumerate()
+            .filter(|(_, (slug, profile))| {
+                let name = profile.name.as_deref().unwrap_or(slug).to_lowercase();
+                name.contains(&filter) || slug.to_lowercase().contains(&filter)
+            })
+            .map(|(i, _)| i)
+            .collect()
+    }
 }
 
 pub fn run_tui() -> Result<()> {

@@ -19,7 +19,7 @@ pub struct EditState {
 #[derive(Debug, Clone)]
 pub enum Field {
     Text { label: String, value: String },
-    Toggle { label: String, value: bool },
+    Toggle { label: String, value: Option<bool> },
 }
 
 impl EditState {
@@ -49,39 +49,39 @@ impl EditState {
                 },
                 Field::Toggle {
                     label: "HDR".into(),
-                    value: true,
+                    value: None,
                 },
                 Field::Toggle {
                     label: "ITM".into(),
-                    value: false,
+                    value: None,
                 },
                 Field::Toggle {
                     label: "VRR".into(),
-                    value: true,
+                    value: None,
                 },
                 Field::Toggle {
                     label: "FSR4".into(),
-                    value: false,
+                    value: None,
                 },
                 Field::Toggle {
                     label: "Gamescope".into(),
-                    value: true,
+                    value: None,
                 },
                 Field::Toggle {
                     label: "V-Cache".into(),
-                    value: false,
+                    value: None,
                 },
                 Field::Toggle {
                     label: "Fix Mouse".into(),
-                    value: false,
+                    value: None,
                 },
                 Field::Toggle {
                     label: "MangoHud".into(),
-                    value: false,
+                    value: None,
                 },
                 Field::Toggle {
                     label: "vkBasalt".into(),
-                    value: false,
+                    value: None,
                 },
                 Field::Text {
                     label: "vkBasalt Profile".into(),
@@ -132,39 +132,39 @@ impl EditState {
                 },
                 Field::Toggle {
                     label: "HDR".into(),
-                    value: s.and_then(|s| s.hdr).unwrap_or(true),
+                    value: s.and_then(|s| s.hdr),
                 },
                 Field::Toggle {
                     label: "ITM".into(),
-                    value: s.and_then(|s| s.itm).unwrap_or(false),
+                    value: s.and_then(|s| s.itm),
                 },
                 Field::Toggle {
                     label: "VRR".into(),
-                    value: s.and_then(|s| s.vrr).unwrap_or(true),
+                    value: s.and_then(|s| s.vrr),
                 },
                 Field::Toggle {
                     label: "FSR4".into(),
-                    value: s.and_then(|s| s.fsr4).unwrap_or(false),
+                    value: s.and_then(|s| s.fsr4),
                 },
                 Field::Toggle {
                     label: "Gamescope".into(),
-                    value: s.and_then(|s| s.gamescope).unwrap_or(true),
+                    value: s.and_then(|s| s.gamescope),
                 },
                 Field::Toggle {
                     label: "V-Cache".into(),
-                    value: s.and_then(|s| s.vcache).unwrap_or(false),
+                    value: s.and_then(|s| s.vcache),
                 },
                 Field::Toggle {
                     label: "Fix Mouse".into(),
-                    value: s.and_then(|s| s.fix_mouse).unwrap_or(false),
+                    value: s.and_then(|s| s.fix_mouse),
                 },
                 Field::Toggle {
                     label: "MangoHud".into(),
-                    value: m.and_then(|m| m.enabled).unwrap_or(false),
+                    value: m.and_then(|m| m.enabled),
                 },
                 Field::Toggle {
                     label: "vkBasalt".into(),
-                    value: v.and_then(|v| v.enabled).unwrap_or(false),
+                    value: v.and_then(|v| v.enabled),
                 },
                 Field::Text {
                     label: "vkBasalt Profile".into(),
@@ -186,14 +186,14 @@ impl EditState {
                 })
                 .unwrap_or_default()
         };
-        let field_bool = |label: &str| -> bool {
+        let field_opt_bool = |label: &str| -> Option<bool> {
             self.fields
                 .iter()
                 .find_map(|f| match f {
                     Field::Toggle { label: l, value } if l == label => Some(*value),
                     _ => None,
                 })
-                .unwrap_or(false)
+                .unwrap_or(None)
         };
 
         let slug = field_val("Slug");
@@ -209,20 +209,20 @@ impl EditState {
             settings: Some(ProfileSettings {
                 width: width_str.parse().ok(),
                 height: height_str.parse().ok(),
-                hdr: Some(field_bool("HDR")),
-                vrr: Some(field_bool("VRR")),
-                gamescope: Some(field_bool("Gamescope")),
-                itm: Some(field_bool("ITM")),
-                fsr4: Some(field_bool("FSR4")),
-                vcache: Some(field_bool("V-Cache")),
-                fix_mouse: Some(field_bool("Fix Mouse")),
+                hdr: field_opt_bool("HDR"),
+                vrr: field_opt_bool("VRR"),
+                gamescope: field_opt_bool("Gamescope"),
+                itm: field_opt_bool("ITM"),
+                fsr4: field_opt_bool("FSR4"),
+                vcache: field_opt_bool("V-Cache"),
+                fix_mouse: field_opt_bool("Fix Mouse"),
             }),
             mangohud: Some(MangoHudConfig {
-                enabled: Some(field_bool("MangoHud")),
+                enabled: field_opt_bool("MangoHud"),
                 config: None,
             }),
             vkbasalt: Some(VkBasaltConfig {
-                enabled: Some(field_bool("vkBasalt")),
+                enabled: field_opt_bool("vkBasalt"),
                 profile: if vkbasalt_profile.is_empty() {
                     None
                 } else {
@@ -272,7 +272,11 @@ pub fn render(frame: &mut Frame, state: &EditState) {
                 format!("  {label:<18} {value}{cursor}")
             }
             Field::Toggle { label, value } => {
-                let indicator = if *value { "[x]" } else { "[ ]" };
+                let indicator = match value {
+                    Some(true) => "[x]",
+                    Some(false) => "[ ]",
+                    None => "[-]",
+                };
                 format!("  {label:<18} {indicator}")
             }
         };
@@ -288,7 +292,7 @@ pub fn render(frame: &mut Frame, state: &EditState) {
         let help = if state.editing_text {
             "  Enter: confirm | Esc: cancel"
         } else {
-            "  j/k: navigate | Enter/Space: edit/toggle | s: save | Esc: cancel"
+            "  j/k: navigate | Enter/Space: edit/toggle ([x]/[ ]/[-]=inherit) | s: save | Esc: cancel"
         };
         frame.render_widget(
             Paragraph::new(help).style(Style::default().fg(Color::DarkGray)),
@@ -344,7 +348,13 @@ pub fn handle_input(app: &mut App, key: KeyEvent) {
             };
         }
         KeyCode::Enter | KeyCode::Char(' ') => match &mut edit_state.fields[edit_state.selected] {
-            Field::Toggle { value, .. } => *value = !*value,
+            Field::Toggle { value, .. } => {
+                *value = match *value {
+                    None => Some(true),
+                    Some(true) => Some(false),
+                    Some(false) => None,
+                };
+            }
             Field::Text { .. } => edit_state.editing_text = true,
         },
         KeyCode::Char('s') => {
