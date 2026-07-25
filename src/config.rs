@@ -253,3 +253,60 @@ pub fn delete_profile(slug: &str) -> Result<bool> {
 pub fn profile_path(slug: &str) -> PathBuf {
     profiles_dir().join(format!("{slug}.toml"))
 }
+
+pub fn find_profile_by_app_id(app_id: u64) -> Result<Option<(String, Profile)>> {
+    let profiles = list_profiles()?;
+    Ok(profiles
+        .into_iter()
+        .find(|(_, p)| p.steam_app_id == Some(app_id)))
+}
+
+pub fn extract_steam_app_id(command: &[String]) -> Option<u64> {
+    for arg in command {
+        // Steam sometimes passes AppId=XXXXXX
+        if let Some(id_str) = arg.strip_prefix("AppId=") {
+            if let Ok(id) = id_str.parse::<u64>() {
+                return Some(id);
+            }
+        }
+        // Also try to extract from steamapps path: .../steamapps/common/GameName/...
+        // by looking for sibling appmanifest files
+        if arg.contains("steamapps") {
+            if let Some(steamapps_idx) = arg.find("steamapps") {
+                let steamapps_dir = &arg[..steamapps_idx + "steamapps".len()];
+                let steamapps_path = std::path::Path::new(steamapps_dir);
+                // Extract game folder name from path
+                let after_common =
+                    arg[steamapps_idx + "steamapps".len()..].strip_prefix("/common/");
+                if let Some(rest) = after_common {
+                    let game_folder = rest.split('/').next().unwrap_or("");
+                    // Scan appmanifest files to find matching installdir
+                    if let Ok(entries) = std::fs::read_dir(steamapps_path) {
+                        for entry in entries.flatten() {
+                            let fname = entry.file_name();
+                            let fname = fname.to_string_lossy();
+                            if fname.starts_with("appmanifest_") && fname.ends_with(".acf") {
+                                if let Ok(contents) = std::fs::read_to_string(entry.path()) {
+                                    if contents
+                                        .contains(&format!("\"installdir\"\t\t\"{game_folder}\""))
+                                        || contents
+                                            .contains(&format!("\"installdir\"		\"{game_folder}\""))
+                                    {
+                                        let id_str = fname
+                                            .strip_prefix("appmanifest_")
+                                            .and_then(|s| s.strip_suffix(".acf"))
+                                            .unwrap_or("");
+                                        if let Ok(id) = id_str.parse::<u64>() {
+                                            return Some(id);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    None
+}
