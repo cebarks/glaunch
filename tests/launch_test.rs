@@ -6,6 +6,7 @@ fn default_settings() -> ResolvedSettings {
     ResolvedSettings {
         width: 3840,
         height: 2160,
+        refresh_rate: 240,
         hdr: true,
         vrr: true,
         gamescope: true,

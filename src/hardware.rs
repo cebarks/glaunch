@@ -43,7 +43,11 @@ pub fn detect_vcache() -> Result<Option<VcacheInfo>> {
 pub fn detect_vcache_from_path(cpu_base: &Path) -> Result<Option<VcacheInfo>> {
     let mut ccds: HashMap<String, u64> = HashMap::new();
 
-    for entry in fs::read_dir(cpu_base).unwrap_or_else(|_| fs::read_dir(".").unwrap()) {
+    let entries = match fs::read_dir(cpu_base) {
+        Ok(entries) => entries,
+        Err(_) => return Ok(None),
+    };
+    for entry in entries {
         let entry = match entry {
             Ok(e) => e,
             Err(_) => continue,
@@ -166,9 +170,4 @@ fn save_hardware_cache(info: &HardwareInfo) -> Result<()> {
     let contents = toml::to_string_pretty(&cache)?;
     fs::write(cache_path(), contents)?;
     Ok(())
-}
-
-pub fn detect_vcache_cached(force_refresh: bool) -> Result<Option<VcacheInfo>> {
-    let info = detect_hardware(force_refresh)?;
-    Ok(info.vcache)
 }

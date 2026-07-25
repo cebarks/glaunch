@@ -68,6 +68,10 @@ pub struct RunArgs {
     #[arg(short = 'H', long)]
     pub height: Option<u32>,
 
+    /// Override refresh rate (default: 240)
+    #[arg(short, long)]
+    pub refresh_rate: Option<u32>,
+
     /// Enable MangoHud with optional config preset name
     #[arg(long, num_args = 0..=1, default_missing_value = "")]
     pub mangohud: Option<String>,

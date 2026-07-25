@@ -9,9 +9,23 @@ use glaunch::{config, hardware, launch};
 fn main() {
     if let Err(e) = run() {
         eprintln!("glaunch: {e:#}");
-        std::process::exit(1);
+        let code = if e.downcast_ref::<HardwareError>().is_some() {
+            2
+        } else {
+            1
+        };
+        std::process::exit(code);
     }
 }
+
+#[derive(Debug)]
+struct HardwareError;
+impl std::fmt::Display for HardwareError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "hardware detection failure")
+    }
+}
+impl std::error::Error for HardwareError {}
 
 fn run() -> Result<()> {
     let cli = Cli::parse();
@@ -40,7 +54,7 @@ fn run() -> Result<()> {
             );
 
             if args.verbose {
-                log_settings(&settings, profile.as_ref());
+                log_settings(&settings, &cli_overrides, profile.as_ref());
             }
 
             // Validate config files before launching
@@ -125,7 +139,8 @@ fn run() -> Result<()> {
             Ok(())
         }
         Command::Info(args) => {
-            let info = hardware::detect_hardware(args.refresh)?;
+            let info = hardware::detect_hardware(args.refresh)
+                .map_err(|e| anyhow::anyhow!(HardwareError).context(e))?;
 
             println!("=== glaunch hardware info ===\n");
 
@@ -158,6 +173,7 @@ fn cli_overrides_from_run_args(args: &cli::RunArgs) -> config::CliOverrides {
     config::CliOverrides {
         width: args.width,
         height: args.height,
+        refresh_rate: args.refresh_rate,
         hdr: if args.no_hdr { Some(false) } else { None },
         vrr: if args.no_vrr { Some(false) } else { None },
         gamescope: if args.no_gamescope { Some(false) } else { None },
@@ -178,41 +194,55 @@ fn cli_overrides_from_run_args(args: &cli::RunArgs) -> config::CliOverrides {
     }
 }
 
-fn log_settings(settings: &config::ResolvedSettings, profile: Option<&config::Profile>) {
-    let src = |from_profile: bool| {
-        if from_profile {
-            profile
-                .and_then(|p| p.name.as_deref())
-                .map(|n| format!(" (from profile '{n}')"))
-                .unwrap_or_default()
+fn log_settings(
+    settings: &config::ResolvedSettings,
+    cli: &config::CliOverrides,
+    profile: Option<&config::Profile>,
+) {
+    let profile_name = profile.and_then(|p| p.name.as_deref());
+    let prof_settings = profile.and_then(|p| p.settings.as_ref());
+
+    let source_bool = |cli_val: Option<bool>, prof_val: Option<bool>| -> &'static str {
+        if cli_val.is_some() {
+            " (CLI)"
+        } else if prof_val.is_some() {
+            " (profile)"
         } else {
-            String::new()
+            ""
         }
     };
 
+    if let Some(name) = profile_name {
+        eprintln!("glaunch: Using profile '{name}'");
+    }
     eprintln!(
-        "glaunch: Resolution: {}x{}",
-        settings.width, settings.height
+        "glaunch: Resolution: {}x{} @ {}Hz",
+        settings.width, settings.height, settings.refresh_rate
     );
     eprintln!(
         "glaunch: HDR: {}{}",
         if settings.hdr { "enabled" } else { "disabled" },
-        src(profile.is_some())
+        source_bool(cli.hdr, prof_settings.and_then(|s| s.hdr))
     );
     eprintln!(
-        "glaunch: VRR: {}",
-        if settings.vrr { "enabled" } else { "disabled" }
+        "glaunch: VRR: {}{}",
+        if settings.vrr { "enabled" } else { "disabled" },
+        source_bool(cli.vrr, prof_settings.and_then(|s| s.vrr))
     );
     eprintln!(
-        "glaunch: Gamescope: {}",
+        "glaunch: Gamescope: {}{}",
         if settings.gamescope {
             "enabled"
         } else {
             "disabled"
-        }
+        },
+        source_bool(cli.gamescope, prof_settings.and_then(|s| s.gamescope))
     );
     if settings.itm {
-        eprintln!("glaunch: ITM: enabled{}", src(profile.is_some()));
+        eprintln!(
+            "glaunch: ITM: enabled{}",
+            source_bool(cli.itm, prof_settings.and_then(|s| s.itm))
+        );
     }
     if settings.fsr4 {
         eprintln!("glaunch: FSR4: enabled");
@@ -221,8 +251,8 @@ fn log_settings(settings: &config::ResolvedSettings, profile: Option<&config::Pr
         eprintln!("glaunch: MangoHud: enabled");
     }
     if settings.vkbasalt {
-        let profile_info = settings.vkbasalt_profile.as_deref().unwrap_or("default");
-        eprintln!("glaunch: vkBasalt: enabled (profile: {profile_info})");
+        let vk_profile = settings.vkbasalt_profile.as_deref().unwrap_or("default");
+        eprintln!("glaunch: vkBasalt: enabled (profile: {vk_profile})");
     }
     if settings.fix_mouse {
         eprintln!("glaunch: Mouse fix: enabled");

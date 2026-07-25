@@ -27,6 +27,7 @@ pub struct GlobalConfig {
 pub struct DefaultsConfig {
     pub width: Option<u32>,
     pub height: Option<u32>,
+    pub refresh_rate: Option<u32>,
     pub hdr: Option<bool>,
     pub vrr: Option<bool>,
     pub gamescope: Option<bool>,
@@ -56,6 +57,7 @@ pub struct Profile {
 pub struct ProfileSettings {
     pub width: Option<u32>,
     pub height: Option<u32>,
+    pub refresh_rate: Option<u32>,
     pub hdr: Option<bool>,
     pub vrr: Option<bool>,
     pub gamescope: Option<bool>,
@@ -77,6 +79,7 @@ pub struct VkBasaltConfig {
 pub struct CliOverrides {
     pub width: Option<u32>,
     pub height: Option<u32>,
+    pub refresh_rate: Option<u32>,
     pub hdr: Option<bool>,
     pub vrr: Option<bool>,
     pub gamescope: Option<bool>,
@@ -96,6 +99,7 @@ pub struct CliOverrides {
 pub struct ResolvedSettings {
     pub width: u32,
     pub height: u32,
+    pub refresh_rate: u32,
     pub hdr: bool,
     pub vrr: bool,
     pub gamescope: bool,
@@ -132,6 +136,11 @@ pub fn resolve_settings_from_layers(
             .or_else(|| prof_settings.and_then(|s| s.height))
             .or_else(|| defaults.and_then(|d| d.height))
             .unwrap_or(2160),
+        refresh_rate: cli
+            .and_then(|c| c.refresh_rate)
+            .or_else(|| prof_settings.and_then(|s| s.refresh_rate))
+            .or_else(|| defaults.and_then(|d| d.refresh_rate))
+            .unwrap_or(240),
         hdr: cli
             .and_then(|c| c.hdr)
             .or_else(|| prof_settings.and_then(|s| s.hdr))

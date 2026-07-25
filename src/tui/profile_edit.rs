@@ -47,6 +47,10 @@ impl EditState {
                     label: "Height".into(),
                     value: "2160".into(),
                 },
+                Field::Text {
+                    label: "Refresh Rate".into(),
+                    value: String::new(),
+                },
                 Field::Toggle {
                     label: "HDR".into(),
                     value: None,
@@ -130,6 +134,13 @@ impl EditState {
                         .map(|h| h.to_string())
                         .unwrap_or_default(),
                 },
+                Field::Text {
+                    label: "Refresh Rate".into(),
+                    value: s
+                        .and_then(|s| s.refresh_rate)
+                        .map(|r| r.to_string())
+                        .unwrap_or_default(),
+                },
                 Field::Toggle {
                     label: "HDR".into(),
                     value: s.and_then(|s| s.hdr),
@@ -201,34 +212,56 @@ impl EditState {
         let app_id_str = field_val("Steam App ID");
         let width_str = field_val("Width");
         let height_str = field_val("Height");
+        let refresh_rate_str = field_val("Refresh Rate");
         let vkbasalt_profile = field_val("vkBasalt Profile");
+
+        let settings = ProfileSettings {
+            width: width_str.parse().ok(),
+            height: height_str.parse().ok(),
+            refresh_rate: refresh_rate_str.parse().ok(),
+            hdr: field_opt_bool("HDR"),
+            vrr: field_opt_bool("VRR"),
+            gamescope: field_opt_bool("Gamescope"),
+            itm: field_opt_bool("ITM"),
+            fsr4: field_opt_bool("FSR4"),
+            vcache: field_opt_bool("V-Cache"),
+            fix_mouse: field_opt_bool("Fix Mouse"),
+        };
+        let has_settings = settings.width.is_some()
+            || settings.height.is_some()
+            || settings.refresh_rate.is_some()
+            || settings.hdr.is_some()
+            || settings.vrr.is_some()
+            || settings.gamescope.is_some()
+            || settings.itm.is_some()
+            || settings.fsr4.is_some()
+            || settings.vcache.is_some()
+            || settings.fix_mouse.is_some();
+
+        let mangohud_enabled = field_opt_bool("MangoHud");
+        let vkbasalt_enabled = field_opt_bool("vkBasalt");
+        let vkbasalt_prof = if vkbasalt_profile.is_empty() {
+            None
+        } else {
+            Some(vkbasalt_profile)
+        };
 
         let profile = Profile {
             name: if name.is_empty() { None } else { Some(name) },
             steam_app_id: app_id_str.parse().ok(),
-            settings: Some(ProfileSettings {
-                width: width_str.parse().ok(),
-                height: height_str.parse().ok(),
-                hdr: field_opt_bool("HDR"),
-                vrr: field_opt_bool("VRR"),
-                gamescope: field_opt_bool("Gamescope"),
-                itm: field_opt_bool("ITM"),
-                fsr4: field_opt_bool("FSR4"),
-                vcache: field_opt_bool("V-Cache"),
-                fix_mouse: field_opt_bool("Fix Mouse"),
-            }),
-            mangohud: Some(MangoHudConfig {
-                enabled: field_opt_bool("MangoHud"),
+            settings: if has_settings { Some(settings) } else { None },
+            mangohud: mangohud_enabled.map(|enabled| MangoHudConfig {
+                enabled: Some(enabled),
                 config: None,
             }),
-            vkbasalt: Some(VkBasaltConfig {
-                enabled: field_opt_bool("vkBasalt"),
-                profile: if vkbasalt_profile.is_empty() {
-                    None
-                } else {
-                    Some(vkbasalt_profile)
-                },
-            }),
+            vkbasalt: if vkbasalt_enabled.is_some() || vkbasalt_prof.is_some() {
+                Some(VkBasaltConfig {
+                    enabled: vkbasalt_enabled,
+                    profile: vkbasalt_prof,
+                })
+            } else {
+                None
+            },
         };
 
         (slug, profile)

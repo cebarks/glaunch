@@ -79,7 +79,7 @@ pub fn build_launch_plan(
         command.extend(["-W".into(), settings.width.to_string()]);
         command.extend(["-H".into(), settings.height.to_string()]);
         command.push("--fullscreen".into());
-        command.extend(["-r".into(), "240".into()]);
+        command.extend(["-r".into(), settings.refresh_rate.to_string()]);
 
         if settings.vrr {
             command.push("--adaptive-sync".into());
@@ -115,12 +115,22 @@ pub fn build_launch_plan(
     Ok(LaunchPlan { env_vars, command })
 }
 
+fn shell_quote(s: &str) -> String {
+    if s.contains(|c: char| c.is_whitespace() || c == '\'' || c == '"' || c == '\\' || c == '$') {
+        format!("'{}'", s.replace('\'', "'\\''"))
+    } else {
+        s.to_string()
+    }
+}
+
 pub fn dry_run_output(plan: &LaunchPlan) -> String {
     let mut parts = Vec::new();
     for (key, value) in &plan.env_vars {
-        parts.push(format!("{key}={value}"));
+        parts.push(format!("{key}={}", shell_quote(value)));
     }
-    parts.extend(plan.command.iter().cloned());
+    for arg in &plan.command {
+        parts.push(shell_quote(arg));
+    }
     parts.join(" ")
 }
 
