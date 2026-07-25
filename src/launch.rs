@@ -62,7 +62,12 @@ pub fn build_launch_plan(
     }
 
     if settings.fix_mouse {
-        env_vars.push(("LD_PRELOAD".into(), "/usr/lib/libgamemodeauto.so.0".into()));
+        let gamemode_lib = "/usr/lib/libgamemodeauto.so.0";
+        let ld_preload = match std::env::var("LD_PRELOAD") {
+            Ok(existing) if !existing.is_empty() => format!("{gamemode_lib}:{existing}"),
+            _ => gamemode_lib.to_string(),
+        };
+        env_vars.push(("LD_PRELOAD".into(), ld_preload));
     }
 
     let mut command: Vec<String> = Vec::new();

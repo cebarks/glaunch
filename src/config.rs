@@ -1,7 +1,7 @@
 use std::fs;
 use std::path::PathBuf;
 
-use anyhow::{Context, Result};
+use anyhow::{Context, Result, bail};
 use serde::{Deserialize, Serialize};
 
 pub fn config_dir() -> PathBuf {
@@ -230,7 +230,26 @@ pub fn list_profiles() -> Result<Vec<(String, Profile)>> {
     Ok(profiles)
 }
 
+fn validate_slug(slug: &str) -> Result<()> {
+    if slug.is_empty() {
+        bail!("profile slug cannot be empty");
+    }
+    if slug.contains('/') || slug.contains('\\') || slug.contains("..") {
+        bail!("profile slug must not contain path separators or '..'");
+    }
+    if !slug
+        .chars()
+        .all(|c| c.is_alphanumeric() || c == '-' || c == '_' || c == '.')
+    {
+        bail!(
+            "profile slug must contain only alphanumeric characters, hyphens, underscores, or dots"
+        );
+    }
+    Ok(())
+}
+
 pub fn save_profile(slug: &str, profile: &Profile) -> Result<()> {
+    validate_slug(slug)?;
     let dir = profiles_dir();
     fs::create_dir_all(&dir)
         .with_context(|| format!("failed to create profiles directory {}", dir.display()))?;
@@ -241,6 +260,7 @@ pub fn save_profile(slug: &str, profile: &Profile) -> Result<()> {
 }
 
 pub fn delete_profile(slug: &str) -> Result<bool> {
+    validate_slug(slug)?;
     let path = profiles_dir().join(format!("{slug}.toml"));
     if !path.exists() {
         return Ok(false);
