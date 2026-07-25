@@ -1,7 +1,7 @@
 use std::fs;
 use std::path::Path;
 
-use glaunch::hardware::{VcacheInfo, detect_vcache_from_path};
+use glaunch::hardware::detect_vcache_from_path;
 
 fn create_mock_sysfs(base: &Path, cpus: &[(u32, u64, &str)]) {
     for (cpu_id, size_kb, shared_list) in cpus {

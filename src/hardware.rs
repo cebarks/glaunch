@@ -3,7 +3,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::time::SystemTime;
 
-use anyhow::{Context, Result};
+use anyhow::Result;
 use serde::{Deserialize, Serialize};
 
 use crate::config::config_dir;
@@ -118,10 +118,8 @@ pub fn detect_gpus() -> Vec<GpuInfo> {
 }
 
 pub fn detect_hardware(force_refresh: bool) -> Result<HardwareInfo> {
-    if !force_refresh {
-        if let Some(cached) = load_hardware_cache()? {
-            return Ok(cached);
-        }
+    if !force_refresh && let Some(cached) = load_hardware_cache()? {
+        return Ok(cached);
     }
 
     let info = HardwareInfo {

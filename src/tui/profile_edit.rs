@@ -10,7 +10,6 @@ use crate::config::{self, MangoHudConfig, Profile, ProfileSettings, VkBasaltConf
 
 #[derive(Debug, Clone)]
 pub struct EditState {
-    pub slug: String,
     pub is_new: bool,
     pub fields: Vec<Field>,
     pub selected: usize,
@@ -26,7 +25,6 @@ pub enum Field {
 impl EditState {
     pub fn new_profile() -> Self {
         Self {
-            slug: String::new(),
             is_new: true,
             fields: vec![
                 Field::Text {
@@ -101,7 +99,6 @@ impl EditState {
         let v = profile.vkbasalt.as_ref();
 
         Self {
-            slug: slug.clone(),
             is_new,
             fields: vec![
                 Field::Text {

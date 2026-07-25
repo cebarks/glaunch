@@ -159,20 +159,20 @@ pub fn handle_input(app: &mut App, key: KeyEvent) {
     if app.list_state.confirm_delete {
         app.list_state.confirm_delete = false;
         if key.code == KeyCode::Char('y') {
-            if let Some(idx) = app.list_state.table_state.selected() {
-                if let Some((slug, _)) = app.profiles.get(idx) {
-                    let slug = slug.clone();
-                    match config::delete_profile(&slug) {
-                        Ok(true) => {
-                            app.status_message = Some(format!("Deleted '{slug}'"));
-                            let _ = app.reload_profiles();
-                        }
-                        Ok(false) => {
-                            app.status_message = Some(format!("'{slug}' not found"));
-                        }
-                        Err(e) => {
-                            app.status_message = Some(format!("Error: {e}"));
-                        }
+            if let Some(idx) = app.list_state.table_state.selected()
+                && let Some((slug, _)) = app.profiles.get(idx)
+            {
+                let slug = slug.clone();
+                match config::delete_profile(&slug) {
+                    Ok(true) => {
+                        app.status_message = Some(format!("Deleted '{slug}'"));
+                        let _ = app.reload_profiles();
+                    }
+                    Ok(false) => {
+                        app.status_message = Some(format!("'{slug}' not found"));
+                    }
+                    Err(e) => {
+                        app.status_message = Some(format!("Error: {e}"));
                     }
                 }
             }
@@ -201,16 +201,16 @@ pub fn handle_input(app: &mut App, key: KeyEvent) {
             }
         }
         KeyCode::Char('e') | KeyCode::Enter => {
-            if let Some(idx) = app.list_state.table_state.selected() {
-                if idx < app.profiles.len() {
-                    let (slug, profile) = &app.profiles[idx];
-                    app.edit_state = Some(profile_edit::EditState::from_profile(
-                        slug.clone(),
-                        profile.clone(),
-                        false,
-                    ));
-                    app.view = View::Edit(idx);
-                }
+            if let Some(idx) = app.list_state.table_state.selected()
+                && idx < app.profiles.len()
+            {
+                let (slug, profile) = &app.profiles[idx];
+                app.edit_state = Some(profile_edit::EditState::from_profile(
+                    slug.clone(),
+                    profile.clone(),
+                    false,
+                ));
+                app.view = View::Edit(idx);
             }
         }
         KeyCode::Char('n') => {

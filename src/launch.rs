@@ -29,35 +29,35 @@ pub fn build_launch_plan(
 
     if settings.vkbasalt {
         env_vars.push(("ENABLE_VKBASALT".into(), "1".into()));
-        if let Some(profile) = &settings.vkbasalt_profile {
-            if !profile.is_empty() {
-                let home = dirs::home_dir().expect("could not determine home directory");
-                let config_path = home
-                    .join(".config")
-                    .join("vkBasalt")
-                    .join(format!("{profile}.conf"));
-                env_vars.push((
-                    "VKBASALT_CONFIG_FILE".into(),
-                    config_path.to_string_lossy().to_string(),
-                ));
-            }
+        if let Some(profile) = &settings.vkbasalt_profile
+            && !profile.is_empty()
+        {
+            let home = dirs::home_dir().expect("could not determine home directory");
+            let config_path = home
+                .join(".config")
+                .join("vkBasalt")
+                .join(format!("{profile}.conf"));
+            env_vars.push((
+                "VKBASALT_CONFIG_FILE".into(),
+                config_path.to_string_lossy().to_string(),
+            ));
         }
     }
 
     if settings.mangohud {
         env_vars.push(("MANGOHUD".into(), "1".into()));
-        if let Some(config) = &settings.mangohud_config {
-            if !config.is_empty() {
-                let home = dirs::home_dir().expect("could not determine home directory");
-                let config_path = home
-                    .join(".config")
-                    .join("MangoHud")
-                    .join(format!("{config}.conf"));
-                env_vars.push((
-                    "MANGOHUD_CONFIG".into(),
-                    config_path.to_string_lossy().to_string(),
-                ));
-            }
+        if let Some(config) = &settings.mangohud_config
+            && !config.is_empty()
+        {
+            let home = dirs::home_dir().expect("could not determine home directory");
+            let config_path = home
+                .join(".config")
+                .join("MangoHud")
+                .join(format!("{config}.conf"));
+            env_vars.push((
+                "MANGOHUD_CONFIG".into(),
+                config_path.to_string_lossy().to_string(),
+            ));
         }
     }
 

@@ -6,7 +6,14 @@ use clap::Parser;
 use cli::{Cli, Command};
 use glaunch::{config, hardware, launch};
 
-fn main() -> Result<()> {
+fn main() {
+    if let Err(e) = run() {
+        eprintln!("glaunch: {e:#}");
+        std::process::exit(1);
+    }
+}
+
+fn run() -> Result<()> {
     let cli = Cli::parse();
 
     match cli.command {
@@ -34,6 +41,35 @@ fn main() -> Result<()> {
 
             if args.verbose {
                 log_settings(&settings, profile.as_ref());
+            }
+
+            // Validate config files before launching
+            if settings.vkbasalt
+                && let Some(profile) = &settings.vkbasalt_profile
+                && !profile.is_empty()
+            {
+                let home = dirs::home_dir().expect("could not determine home directory");
+                let config_path = home
+                    .join(".config")
+                    .join("vkBasalt")
+                    .join(format!("{profile}.conf"));
+                if !config_path.exists() {
+                    anyhow::bail!("vkBasalt profile not found: {}", config_path.display());
+                }
+            }
+
+            if settings.mangohud
+                && let Some(config) = &settings.mangohud_config
+                && !config.is_empty()
+            {
+                let home = dirs::home_dir().expect("could not determine home directory");
+                let config_path = home
+                    .join(".config")
+                    .join("MangoHud")
+                    .join(format!("{config}.conf"));
+                if !config_path.exists() {
+                    anyhow::bail!("MangoHud config not found: {}", config_path.display());
+                }
             }
 
             // V-Cache detection (only if settings say vcache is enabled)

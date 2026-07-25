@@ -78,18 +78,18 @@ pub fn run_tui() -> Result<()> {
             break;
         }
 
-        if event::poll(Duration::from_millis(100))? {
-            if let Event::Key(key) = event::read()? {
-                // Ctrl+C always quits
-                if key.modifiers.contains(KeyModifiers::CONTROL) && key.code == KeyCode::Char('c') {
-                    break;
-                }
+        if event::poll(Duration::from_millis(100))?
+            && let Event::Key(key) = event::read()?
+        {
+            // Ctrl+C always quits
+            if key.modifiers.contains(KeyModifiers::CONTROL) && key.code == KeyCode::Char('c') {
+                break;
+            }
 
-                match &app.view {
-                    View::List => profile_list::handle_input(&mut app, key),
-                    View::Edit(_) | View::New => {
-                        profile_edit::handle_input(&mut app, key);
-                    }
+            match &app.view {
+                View::List => profile_list::handle_input(&mut app, key),
+                View::Edit(_) | View::New => {
+                    profile_edit::handle_input(&mut app, key);
                 }
             }
         }
