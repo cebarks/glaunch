@@ -1,4 +1,5 @@
 mod cli;
+mod profile;
 
 use anyhow::Result;
 use clap::Parser;
@@ -73,9 +74,15 @@ fn main() -> Result<()> {
             launch::execute(&plan)?;
             unreachable!()
         }
-        Command::Profile(_args) => {
-            eprintln!("profile: not yet implemented");
-            std::process::exit(1);
+        Command::Profile(args) => {
+            match args.command {
+                cli::ProfileCommand::List => profile::list()?,
+                cli::ProfileCommand::Show { name } => profile::show(&name)?,
+                cli::ProfileCommand::Create { name } => profile::create(&name)?,
+                cli::ProfileCommand::Edit { name } => profile::edit(&name)?,
+                cli::ProfileCommand::Delete { name } => profile::delete(&name)?,
+            }
+            Ok(())
         }
         Command::Tui => {
             eprintln!("tui: not yet implemented");
