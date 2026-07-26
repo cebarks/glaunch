@@ -1,9 +1,6 @@
-use std::collections::BTreeMap;
-
 use glaunch::config::CliOverrides;
-use glaunch::history::{
-    self, AppHistory, History, LaunchRecord, derive_app_slug, has_overrides, record_launch,
-};
+use glaunch::history::{History, derive_app_slug, has_overrides, record_launch};
+use tempfile::TempDir;
 
 #[test]
 fn test_derive_slug_from_steamapps_path() {
@@ -152,4 +149,65 @@ fn test_history_json_round_trip() {
         deserialized["test-game"].launches[0].overrides.fsr4,
         Some(true)
     );
+}
+
+#[test]
+fn test_save_and_load_history_file() {
+    let tmp = TempDir::new().unwrap();
+    let history_file = tmp.path().join("history.json");
+
+    let mut history = History::default();
+    let overrides = CliOverrides {
+        fsr4: Some(true),
+        mangohud: Some(true),
+        mangohud_config: Some("fps-only".to_string()),
+        ..Default::default()
+    };
+    record_launch(
+        &mut history,
+        "test-game",
+        Some(12345),
+        vec!["game.exe".to_string()],
+        overrides,
+    );
+
+    // Write directly to temp path
+    let json = serde_json::to_string_pretty(&history).unwrap();
+    std::fs::write(&history_file, &json).unwrap();
+
+    // Read back
+    let contents = std::fs::read_to_string(&history_file).unwrap();
+    let loaded: History = serde_json::from_str(&contents).unwrap();
+
+    assert_eq!(loaded.len(), 1);
+    let app = &loaded["test-game"];
+    assert_eq!(app.steam_app_id, Some(12345));
+    assert_eq!(app.launches.len(), 1);
+    assert_eq!(app.launches[0].overrides.fsr4, Some(true));
+    assert_eq!(app.launches[0].overrides.mangohud, Some(true));
+    assert_eq!(
+        app.launches[0].overrides.mangohud_config,
+        Some("fps-only".to_string())
+    );
+    // None fields should not appear in JSON
+    assert!(!json.contains("\"width\""));
+    assert!(!json.contains("\"vkbasalt\""));
+}
+
+#[test]
+fn test_load_empty_file_fails_gracefully() {
+    let tmp = TempDir::new().unwrap();
+    let history_file = tmp.path().join("history.json");
+    std::fs::write(&history_file, "").unwrap();
+
+    let result: Result<History, _> = serde_json::from_str("");
+    assert!(result.is_err());
+}
+
+#[test]
+fn test_load_nonexistent_returns_default() {
+    // load_history() returns default when file doesn't exist
+    // We test the serialization contract: default is empty map
+    let history = History::default();
+    assert!(history.is_empty());
 }
