@@ -92,11 +92,37 @@ pub fn record_launch(
     app.launches.truncate(MAX_LAUNCHES_PER_APP);
 }
 
+const STEAM_INFRA_PREFIXES: &[&str] = &[
+    "steamlinuxruntime",
+    "proton ",
+    "proton-",
+    "steam linux runtime",
+];
+
+fn is_steam_infrastructure(folder: &str) -> bool {
+    let lower = folder.to_lowercase();
+    STEAM_INFRA_PREFIXES
+        .iter()
+        .any(|prefix| lower.starts_with(prefix))
+}
+
 pub fn derive_app_slug(command: &[String]) -> String {
+    // Collect all steamapps/common/ matches, preferring non-infrastructure folders
+    let mut candidates: Vec<(String, bool)> = Vec::new();
     for arg in command {
-        if let Some(slug) = extract_slug_from_steamapps_path(arg) {
-            return slug;
+        if let Some((folder, slug)) = extract_slug_from_steamapps_path(arg) {
+            let is_infra = is_steam_infrastructure(&folder);
+            candidates.push((slug, is_infra));
         }
+    }
+
+    // Prefer the first non-infrastructure match
+    if let Some((slug, _)) = candidates.iter().find(|(_, is_infra)| !is_infra) {
+        return slug.clone();
+    }
+    // Fall back to the first match even if it's infrastructure
+    if let Some((slug, _)) = candidates.first() {
+        return slug.clone();
     }
 
     // Fallback: use executable basename
@@ -113,21 +139,40 @@ pub fn derive_app_slug(command: &[String]) -> String {
     "unknown".to_string()
 }
 
-fn extract_slug_from_steamapps_path(arg: &str) -> Option<String> {
-    let lower = arg.to_lowercase();
+fn extract_slug_from_steamapps_path(arg: &str) -> Option<(String, String)> {
     let marker = "steamapps/common/";
+    // Case-insensitive search by scanning for the marker in the lowered string,
+    // then slicing the original to preserve case for camelCase splitting.
+    // Safe because Steam paths are ASCII before the marker.
+    let lower = arg.to_lowercase();
     let idx = lower.find(marker)?;
-    let after = &lower[idx + marker.len()..];
+    let after = &arg[idx + marker.len()..];
     let folder = after.split('/').next().unwrap_or("");
     if folder.is_empty() {
         return None;
     }
     let slug = normalize_to_slug(folder);
-    if slug.is_empty() { None } else { Some(slug) }
+    if slug.is_empty() {
+        None
+    } else {
+        Some((folder.to_string(), slug))
+    }
 }
 
 fn normalize_to_slug(name: &str) -> String {
-    name.chars()
+    // Insert hyphens at camelCase boundaries (e.g. MarvelRivals → Marvel-Rivals)
+    let mut expanded = String::with_capacity(name.len() + 4);
+    let mut prev_lower = false;
+    for c in name.chars() {
+        if c.is_uppercase() && prev_lower {
+            expanded.push('-');
+        }
+        expanded.push(c);
+        prev_lower = c.is_lowercase();
+    }
+
+    expanded
+        .chars()
         .map(|c| {
             if c.is_alphanumeric() {
                 c.to_ascii_lowercase()
