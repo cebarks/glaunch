@@ -132,7 +132,7 @@ fn run() -> Result<()> {
                             &slug,
                             app_id,
                             args.command.clone(),
-                            cli_overrides_from_run_args(&args),
+                            cli_overrides,
                         );
                         if let Err(e) = history::save_history(&hist) {
                             eprintln!("glaunch: warning: failed to save launch history: {e}");

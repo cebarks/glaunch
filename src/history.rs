@@ -117,7 +117,7 @@ fn extract_slug_from_steamapps_path(arg: &str) -> Option<String> {
     let lower = arg.to_lowercase();
     let marker = "steamapps/common/";
     let idx = lower.find(marker)?;
-    let after = &arg[idx + marker.len()..];
+    let after = &lower[idx + marker.len()..];
     let folder = after.split('/').next().unwrap_or("");
     if folder.is_empty() {
         return None;
