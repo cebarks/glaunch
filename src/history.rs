@@ -232,8 +232,8 @@ pub fn list_history() -> Result<()> {
     }
 
     println!(
-        "{:<25} {:<12} {:<10} {}",
-        "SLUG", "APP ID", "LAUNCHES", "LAST LAUNCHED"
+        "{:<25} {:<12} {:<10} LAST LAUNCHED",
+        "SLUG", "APP ID", "LAUNCHES"
     );
     println!("{}", "-".repeat(65));
 
