@@ -4,7 +4,7 @@ mod profile;
 use anyhow::Result;
 use clap::Parser;
 use cli::{Cli, Command};
-use glaunch::{config, hardware, launch};
+use glaunch::{config, hardware, history, launch};
 
 fn main() {
     if let Err(e) = run() {
@@ -119,6 +119,29 @@ fn run() -> Result<()> {
             if args.dry_run {
                 println!("{}", launch::dry_run_output(&plan));
                 return Ok(());
+            }
+
+            // Record launch history (non-fatal)
+            if history::has_overrides(&cli_overrides) {
+                let slug = history::derive_app_slug(&args.command);
+                let app_id = config::extract_steam_app_id(&args.command);
+                match history::load_history() {
+                    Ok(mut hist) => {
+                        history::record_launch(
+                            &mut hist,
+                            &slug,
+                            app_id,
+                            args.command.clone(),
+                            cli_overrides_from_run_args(&args),
+                        );
+                        if let Err(e) = history::save_history(&hist) {
+                            eprintln!("glaunch: warning: failed to save launch history: {e}");
+                        }
+                    }
+                    Err(e) => {
+                        eprintln!("glaunch: warning: failed to load launch history: {e}");
+                    }
+                }
             }
 
             launch::execute(&plan)?;

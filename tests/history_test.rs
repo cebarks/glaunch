@@ -273,3 +273,28 @@ fn test_promote_minimal_overrides() {
     assert!(profile.mangohud.is_none());
     assert!(profile.vkbasalt.is_none());
 }
+
+#[test]
+fn test_has_overrides_false_for_default() {
+    let cli = CliOverrides::default();
+    assert!(!has_overrides(&cli));
+}
+
+#[test]
+fn test_derive_slug_strips_apostrophes() {
+    let cmd = vec!["/steamapps/common/Baldur's Gate 3/bin/bg3.exe".to_string()];
+    let slug = derive_app_slug(&cmd);
+    assert_eq!(slug, "baldurs-gate-3");
+    // Verify slug is valid for use as a filename
+    assert!(slug.chars().all(|c| c.is_alphanumeric() || c == '-'));
+}
+
+#[test]
+fn test_derive_slug_handles_multiple_args() {
+    // The steamapps path might not be the first arg
+    let cmd = vec![
+        "wine".to_string(),
+        "/home/user/.steam/steamapps/common/Test Game/game.exe".to_string(),
+    ];
+    assert_eq!(derive_app_slug(&cmd), "test-game");
+}
