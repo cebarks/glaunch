@@ -166,6 +166,9 @@ fn run() -> Result<()> {
 
             Ok(())
         }
+        Command::History(_) => {
+            anyhow::bail!("history command not yet implemented")
+        }
     }
 }
 

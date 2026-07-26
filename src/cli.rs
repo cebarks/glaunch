@@ -16,6 +16,8 @@ pub enum Command {
     Run(RunArgs),
     /// Manage per-game profiles
     Profile(ProfileArgs),
+    /// Manage launch history
+    History(HistoryArgs),
     /// Interactive profile editor
     Tui,
     /// Show detected hardware info
@@ -118,4 +120,33 @@ pub struct InfoArgs {
     /// Force re-detection (bypass cache)
     #[arg(long)]
     pub refresh: bool,
+}
+
+#[derive(clap::Args)]
+pub struct HistoryArgs {
+    #[command(subcommand)]
+    pub command: HistoryCommand,
+}
+
+#[derive(Subcommand)]
+pub enum HistoryCommand {
+    /// List all apps with saved launch history
+    List,
+    /// Show launch history for an app
+    Show { slug: String },
+    /// Create a profile from a saved launch
+    Promote {
+        slug: String,
+        /// Which launch to promote (1=newest, default: 1)
+        #[arg(long, default_value = "1")]
+        launch: usize,
+        /// Override the profile name (defaults to app slug)
+        #[arg(long)]
+        name: Option<String>,
+    },
+    /// Clear launch history
+    Clear {
+        /// Clear history for a specific app (omit to clear all)
+        slug: Option<String>,
+    },
 }
