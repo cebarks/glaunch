@@ -75,7 +75,7 @@ pub struct VkBasaltConfig {
 
 // --- CLI override layer (constructed from RunArgs) ---
 
-#[derive(Debug, Default, Serialize, Deserialize)]
+#[derive(Debug, Default, Clone, Serialize, Deserialize)]
 pub struct CliOverrides {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub width: Option<u32>,
