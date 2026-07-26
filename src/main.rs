@@ -166,8 +166,18 @@ fn run() -> Result<()> {
 
             Ok(())
         }
-        Command::History(_) => {
-            anyhow::bail!("history command not yet implemented")
+        Command::History(args) => {
+            match args.command {
+                cli::HistoryCommand::List => glaunch::history::list_history()?,
+                cli::HistoryCommand::Show { slug } => glaunch::history::show_history(&slug)?,
+                cli::HistoryCommand::Promote { slug, launch, name } => {
+                    glaunch::history::promote_to_profile(&slug, launch, name.as_deref())?;
+                }
+                cli::HistoryCommand::Clear { slug } => {
+                    glaunch::history::clear_history(slug.as_deref())?;
+                }
+            }
+            Ok(())
         }
     }
 }

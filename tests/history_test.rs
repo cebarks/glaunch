@@ -215,3 +215,61 @@ fn test_default_history_is_empty() {
     let history = History::default();
     assert!(history.is_empty());
 }
+
+#[test]
+fn test_promote_builds_correct_profile() {
+    let overrides = CliOverrides {
+        fsr4: Some(true),
+        vcache: Some(true),
+        hdr: Some(false),
+        mangohud: Some(true),
+        mangohud_config: Some("minimal".to_string()),
+        vkbasalt: Some(true),
+        vkbasalt_profile: Some("reshade".to_string()),
+        width: Some(2560),
+        height: Some(1440),
+        ..Default::default()
+    };
+
+    let profile =
+        glaunch::history::build_profile_from_overrides(&overrides, Some(1245620), "Elden Ring");
+
+    assert_eq!(profile.name, Some("Elden Ring".to_string()));
+    assert_eq!(profile.steam_app_id, Some(1245620));
+
+    let settings = profile.settings.unwrap();
+    assert_eq!(settings.fsr4, Some(true));
+    assert_eq!(settings.vcache, Some(true));
+    assert_eq!(settings.hdr, Some(false));
+    assert_eq!(settings.width, Some(2560));
+    assert_eq!(settings.height, Some(1440));
+    // fix_mouse was not set in overrides, so should be None
+    assert_eq!(settings.fix_mouse, None);
+
+    let mangohud = profile.mangohud.unwrap();
+    assert_eq!(mangohud.enabled, Some(true));
+    assert_eq!(mangohud.config, Some("minimal".to_string()));
+
+    let vkbasalt = profile.vkbasalt.unwrap();
+    assert_eq!(vkbasalt.enabled, Some(true));
+    assert_eq!(vkbasalt.profile, Some("reshade".to_string()));
+}
+
+#[test]
+fn test_promote_minimal_overrides() {
+    let overrides = CliOverrides {
+        fsr4: Some(true),
+        ..Default::default()
+    };
+
+    let profile = glaunch::history::build_profile_from_overrides(&overrides, None, "test-game");
+
+    assert_eq!(profile.name, Some("test-game".to_string()));
+    assert_eq!(profile.steam_app_id, None);
+
+    let settings = profile.settings.unwrap();
+    assert_eq!(settings.fsr4, Some(true));
+    assert_eq!(settings.hdr, None);
+    assert!(profile.mangohud.is_none());
+    assert!(profile.vkbasalt.is_none());
+}

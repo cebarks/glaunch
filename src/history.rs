@@ -161,3 +161,184 @@ pub fn has_overrides(cli: &CliOverrides) -> bool {
         || cli.vkbasalt.is_some()
         || cli.vkbasalt_profile.is_some()
 }
+
+use crate::config::{MangoHudConfig, Profile, ProfileSettings, VkBasaltConfig};
+
+pub fn build_profile_from_overrides(
+    overrides: &CliOverrides,
+    steam_app_id: Option<u64>,
+    display_name: &str,
+) -> Profile {
+    let has_settings = overrides.width.is_some()
+        || overrides.height.is_some()
+        || overrides.refresh_rate.is_some()
+        || overrides.hdr.is_some()
+        || overrides.vrr.is_some()
+        || overrides.gamescope.is_some()
+        || overrides.itm.is_some()
+        || overrides.fsr4.is_some()
+        || overrides.vcache.is_some()
+        || overrides.fix_mouse.is_some();
+
+    let settings = if has_settings {
+        Some(ProfileSettings {
+            width: overrides.width,
+            height: overrides.height,
+            refresh_rate: overrides.refresh_rate,
+            hdr: overrides.hdr,
+            vrr: overrides.vrr,
+            gamescope: overrides.gamescope,
+            itm: overrides.itm,
+            fsr4: overrides.fsr4,
+            vcache: overrides.vcache,
+            fix_mouse: overrides.fix_mouse,
+        })
+    } else {
+        None
+    };
+
+    let mangohud = if overrides.mangohud.is_some() || overrides.mangohud_config.is_some() {
+        Some(MangoHudConfig {
+            enabled: overrides.mangohud,
+            config: overrides.mangohud_config.clone(),
+        })
+    } else {
+        None
+    };
+
+    let vkbasalt = if overrides.vkbasalt.is_some() || overrides.vkbasalt_profile.is_some() {
+        Some(VkBasaltConfig {
+            enabled: overrides.vkbasalt,
+            profile: overrides.vkbasalt_profile.clone(),
+        })
+    } else {
+        None
+    };
+
+    Profile {
+        name: Some(display_name.to_string()),
+        steam_app_id,
+        settings,
+        mangohud,
+        vkbasalt,
+    }
+}
+
+pub fn list_history() -> Result<()> {
+    let history = load_history()?;
+    if history.is_empty() {
+        println!("No launch history. Run a game with CLI flags to start recording.");
+        return Ok(());
+    }
+
+    println!(
+        "{:<25} {:<12} {:<10} {}",
+        "SLUG", "APP ID", "LAUNCHES", "LAST LAUNCHED"
+    );
+    println!("{}", "-".repeat(65));
+
+    for (slug, app) in history.iter() {
+        let app_id = app
+            .steam_app_id
+            .map(|id| id.to_string())
+            .unwrap_or_else(|| "-".to_string());
+        let last = app
+            .launches
+            .first()
+            .map(|l| l.timestamp.format("%Y-%m-%d %H:%M").to_string())
+            .unwrap_or_else(|| "-".to_string());
+        println!(
+            "{:<25} {:<12} {:<10} {}",
+            slug,
+            app_id,
+            app.launches.len(),
+            last
+        );
+    }
+
+    Ok(())
+}
+
+pub fn show_history(slug: &str) -> Result<()> {
+    let history = load_history()?;
+    let app = history
+        .get(slug)
+        .ok_or_else(|| anyhow::anyhow!("no history for '{slug}'"))?;
+
+    if let Some(id) = app.steam_app_id {
+        println!("App: {slug} (Steam ID: {id})");
+    } else {
+        println!("App: {slug}");
+    }
+    println!();
+
+    for (i, launch) in app.launches.iter().enumerate() {
+        println!(
+            "  Launch {} — {}",
+            i + 1,
+            launch.timestamp.format("%Y-%m-%d %H:%M:%S UTC")
+        );
+        println!("    Command: {}", launch.command.join(" "));
+        let json = serde_json::to_string(&launch.overrides).unwrap_or_else(|_| "{}".to_string());
+        println!("    Overrides: {json}");
+        println!();
+    }
+
+    Ok(())
+}
+
+pub fn promote_to_profile(
+    slug: &str,
+    launch_index: usize,
+    profile_name: Option<&str>,
+) -> Result<()> {
+    let history = load_history()?;
+    let app = history
+        .get(slug)
+        .ok_or_else(|| anyhow::anyhow!("no history for '{slug}'"))?;
+
+    if launch_index == 0 || launch_index > app.launches.len() {
+        anyhow::bail!(
+            "launch index {launch_index} out of range (1-{})",
+            app.launches.len()
+        );
+    }
+
+    let launch = &app.launches[launch_index - 1];
+    let target_slug = profile_name.unwrap_or(slug);
+    let profile_path = config::profile_path(target_slug);
+
+    if profile_path.exists() {
+        anyhow::bail!(
+            "profile '{target_slug}' already exists. Use --name to choose a different name."
+        );
+    }
+
+    let display_name = profile_name.unwrap_or(slug).replace('-', " ");
+    let profile = build_profile_from_overrides(&launch.overrides, app.steam_app_id, &display_name);
+    config::save_profile(target_slug, &profile)?;
+
+    println!("Created profile: {}", profile_path.display());
+    println!("Edit it with: glaunch profile edit {target_slug}");
+    Ok(())
+}
+
+pub fn clear_history(slug: Option<&str>) -> Result<()> {
+    match slug {
+        Some(slug) => {
+            let mut history = load_history()?;
+            if history.remove(slug).is_some() {
+                save_history(&history)?;
+                println!("Cleared history for '{slug}'.");
+            } else {
+                anyhow::bail!("no history for '{slug}'");
+            }
+        }
+        None => {
+            let history = History::default();
+            save_history(&history)?;
+            println!("Cleared all launch history.");
+        }
+    }
+    Ok(())
+}
