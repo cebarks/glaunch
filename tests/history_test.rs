@@ -200,14 +200,18 @@ fn test_load_empty_file_fails_gracefully() {
     let history_file = tmp.path().join("history.json");
     std::fs::write(&history_file, "").unwrap();
 
-    let result: Result<History, _> = serde_json::from_str("");
+    // Read the empty file and attempt to deserialize
+    let contents = std::fs::read_to_string(&history_file).unwrap();
+    let result: Result<History, _> = serde_json::from_str(&contents);
     assert!(result.is_err());
 }
 
 #[test]
-fn test_load_nonexistent_returns_default() {
-    // load_history() returns default when file doesn't exist
-    // We test the serialization contract: default is empty map
+fn test_default_history_is_empty() {
+    // Tests the serialization contract that History::default() is an empty map.
+    // Note: load_history()'s fallback to default when the file doesn't exist
+    // is tested indirectly through this contract — when load_history() encounters
+    // a missing ~.config/glaunch/history.json, it returns History::default().
     let history = History::default();
     assert!(history.is_empty());
 }
