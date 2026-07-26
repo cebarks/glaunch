@@ -141,3 +141,42 @@ itm = true
     assert!(!resolved.hdr); // CLI wins
     assert!(resolved.itm); // profile wins (CLI didn't set it)
 }
+
+#[test]
+fn test_cli_overrides_serialize_skip_none() {
+    use glaunch::config::CliOverrides;
+
+    let overrides = CliOverrides {
+        fsr4: Some(true),
+        vcache: Some(true),
+        mangohud: Some(true),
+        mangohud_config: Some("minimal".to_string()),
+        ..Default::default()
+    };
+
+    let json = serde_json::to_string(&overrides).unwrap();
+    let parsed: serde_json::Value = serde_json::from_str(&json).unwrap();
+
+    // Only set fields should be present
+    assert_eq!(parsed["fsr4"], true);
+    assert_eq!(parsed["vcache"], true);
+    assert_eq!(parsed["mangohud"], true);
+    assert_eq!(parsed["mangohud_config"], "minimal");
+
+    // None fields should be absent
+    assert!(parsed.get("width").is_none());
+    assert!(parsed.get("hdr").is_none());
+    assert!(parsed.get("vkbasalt").is_none());
+}
+
+#[test]
+fn test_cli_overrides_deserialize_missing_fields() {
+    use glaunch::config::CliOverrides;
+
+    let json = r#"{"fsr4": true}"#;
+    let overrides: CliOverrides = serde_json::from_str(json).unwrap();
+
+    assert_eq!(overrides.fsr4, Some(true));
+    assert_eq!(overrides.width, None);
+    assert_eq!(overrides.hdr, None);
+}

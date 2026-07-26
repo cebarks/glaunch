@@ -75,21 +75,35 @@ pub struct VkBasaltConfig {
 
 // --- CLI override layer (constructed from RunArgs) ---
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Serialize, Deserialize)]
 pub struct CliOverrides {
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub width: Option<u32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub height: Option<u32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub refresh_rate: Option<u32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub hdr: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub vrr: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub gamescope: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub itm: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub fsr4: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub vcache: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub fix_mouse: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub mangohud: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub mangohud_config: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub vkbasalt: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub vkbasalt_profile: Option<String>,
 }
 
