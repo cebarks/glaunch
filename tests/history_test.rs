@@ -298,3 +298,34 @@ fn test_derive_slug_handles_multiple_args() {
     ];
     assert_eq!(derive_app_slug(&cmd), "test-game");
 }
+
+#[test]
+fn test_derive_slug_skips_steam_runtime() {
+    // Typical Proton launch: runtime comes first, then Proton, then the actual game
+    let cmd = vec![
+        "/home/user/.steam/steamapps/common/SteamLinuxRuntime_sniper/_v2-entry-point".to_string(),
+        "--verb=waitforexitandrun".to_string(),
+        "--".to_string(),
+        "/home/user/.steam/steamapps/common/Proton 9.0/proton".to_string(),
+        "waitforexitandrun".to_string(),
+        "/home/user/.steam/steamapps/common/Marvel Rivals/game.exe".to_string(),
+    ];
+    assert_eq!(derive_app_slug(&cmd), "marvel-rivals");
+}
+
+#[test]
+fn test_derive_slug_skips_proton_prefers_game() {
+    let cmd = vec![
+        "/home/user/.steam/steamapps/common/Proton - Experimental/proton".to_string(),
+        "waitforexitandrun".to_string(),
+        "/home/user/.steam/steamapps/common/Elden Ring/eldenring.exe".to_string(),
+    ];
+    assert_eq!(derive_app_slug(&cmd), "elden-ring");
+}
+
+#[test]
+fn test_derive_slug_falls_back_to_infra_if_only_match() {
+    // If only infrastructure folders are found, still return something
+    let cmd = vec!["/home/user/.steam/steamapps/common/SteamLinuxRuntime_sniper/run".to_string()];
+    assert_eq!(derive_app_slug(&cmd), "steam-linux-runtime-sniper");
+}
